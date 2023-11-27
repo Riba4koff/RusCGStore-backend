@@ -13,9 +13,9 @@ fun main(args: Array<String>) {
 fun Application.module() {
     val dataBaseConfig = DataBaseConfig(
         user = environment.config.property("postgres.user").getString(),
-        password = environment.config.property("postgres.user").getString(),
-        database = environment.config.property("postgres.user").getString(),
-        ip = environment.config.property("postgres.user").getString()
+        password = environment.config.property("postgres.password").getString(),
+        database = environment.config.property("postgres.database").getString(),
+        ip = environment.config.property("postgres.ip").getString()
     )
     val tokenConfig = TokenConfig(
         audience = environment.config.property("jwt.audience").getString(),
