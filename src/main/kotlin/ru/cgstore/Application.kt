@@ -2,8 +2,11 @@ package ru.cgstore
 
 import io.ktor.server.application.*
 import ru.cgstore.plugins.*
+import ru.cgstore.security.hash_service.Sha256HashingService
+import ru.cgstore.security.token_service.JwtTokenService
 import ru.cgstore.security.token_service.TokenConfig
 import ru.cgstore.storage.DataBaseConfig
+import ru.cgstore.storage.users.UsersServiceImpl
 
 fun main(args: Array<String>) {
     io.ktor.server.cio.EngineMain.main(args)
@@ -23,13 +26,20 @@ fun Application.module() {
         expiresIn = 3L * 1000L * 60L * 60L * 24L,
         secret = environment.config.property("jwt.secret").getString()
     )
+    val database = configureDatabases(dataBaseConfig)
+    val usersService = UsersServiceImpl(database)
+    val tokenService = JwtTokenService()
+    val hashingService = Sha256HashingService()
 
-    configureDatabases(dataBaseConfig)
     configureSockets()
     configureSerialization()
     configureMonitoring()
     configureHTTP()
     configureSecurity(config = tokenConfig)
-    configureRouting()
-    koin()
+    configureRouting(
+        config = tokenConfig,
+        usersService = usersService,
+        hashingService = hashingService,
+        tokenService = tokenService
+    )
 }

@@ -6,12 +6,13 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlin.test.*
 import ru.cgstore.plugins.*
+import ru.cgstore.security.token_service.TokenConfig
 
 class ApplicationTest {
     @Test
     fun testRoot() = testApplication {
         application {
-            configureRouting()
+
         }
         client.get("/").apply {
             assertEquals(HttpStatusCode.OK, status)
