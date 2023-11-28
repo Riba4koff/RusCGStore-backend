@@ -86,6 +86,14 @@ private fun Route.signUp(
             return@post
         }
 
+        usersService.phoneExists(request.phone).fold(
+            ifLeft = { failure ->
+                call.respond(HttpStatusCode.Conflict, failure.message)
+                return@post
+            },
+            ifRight = { return@fold }
+        )
+
         usersService.loginExists(request.login).fold(
             ifLeft = { failure ->
                 call.respond(HttpStatusCode.Conflict, failure.message)
@@ -95,14 +103,6 @@ private fun Route.signUp(
         )
 
         usersService.emailExists(request.email).fold(
-            ifLeft = { failure ->
-                call.respond(HttpStatusCode.Conflict, failure.message)
-                return@post
-            },
-            ifRight = { return@fold }
-        )
-
-        usersService.phoneExists(request.email).fold(
             ifLeft = { failure ->
                 call.respond(HttpStatusCode.Conflict, failure.message)
                 return@post

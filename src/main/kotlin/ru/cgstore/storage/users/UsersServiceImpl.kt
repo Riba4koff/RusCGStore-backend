@@ -91,9 +91,11 @@ class UsersServiceImpl(database: Database) : UsersService {
     }.mapLeft { error -> Failure.ReadFailure(error.message.orEmpty()) }
 
     override suspend fun read(id: String): Either<Failure, User> = either<Failure, User> {
-        val user = dbQuery { UsersTable.select { UsersTable.id eq id } }.map(::resultRowToUser).singleOrNull()
-        ensure(user != null) { Failure.ReadFailure("User with id: $id was not found.") }
-        user
+        dbQuery {
+            val user = UsersTable.select { UsersTable.id eq id }.map(::resultRowToUser).singleOrNull()
+            ensure(user != null) { Failure.ReadFailure("User with id: $id was not found.") }
+            user
+        }
     }.mapLeft { error -> Failure.ReadFailure(error.message) }
 
     override suspend fun readByLogin(login: String): Either<Failure, User> = either<Failure, User> {

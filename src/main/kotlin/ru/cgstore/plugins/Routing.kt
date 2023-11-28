@@ -4,6 +4,7 @@ import io.ktor.server.application.*
 import io.ktor.server.resources.*
 import io.ktor.server.routing.*
 import ru.cgstore.routes.auth.auth
+import ru.cgstore.routes.auth.test
 import ru.cgstore.security.hash_service.HashingService
 import ru.cgstore.security.token_service.TokenConfig
 import ru.cgstore.security.token_service.TokenService
@@ -28,5 +29,6 @@ fun Application.configureRouting(
             hashingService = hashingService,
             tokenConfig = config
         )
+        test(usersService = usersService)
     }
 }
