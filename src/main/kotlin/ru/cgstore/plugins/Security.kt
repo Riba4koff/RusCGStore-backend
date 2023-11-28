@@ -42,5 +42,3 @@ fun Application.configureSecurity(config: TokenConfig) {
         }
     }
 }
-
-class UserSession(accessToken: String)

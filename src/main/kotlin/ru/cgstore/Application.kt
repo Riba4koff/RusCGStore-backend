@@ -15,16 +15,16 @@ fun main(args: Array<String>) {
 @Suppress("UNUSED")
 fun Application.module() {
     val dataBaseConfig = DataBaseConfig(
-        user = environment.config.property("postgres.user").getString(),
-        password = environment.config.property("postgres.password").getString(),
-        database = environment.config.property("postgres.database").getString(),
-        ip = environment.config.property("postgres.ip").getString()
+        user = System.getenv("user"),
+        password = System.getenv("password"),
+        database = System.getenv("database"),
+        ip = System.getenv("ip")
     )
     val tokenConfig = TokenConfig(
         audience = environment.config.property("jwt.audience").getString(),
         issuer = environment.config.property("jwt.issuer").getString(),
         expiresIn = 3L * 1000L * 60L * 60L * 24L,
-        secret = environment.config.property("jwt.secret").getString()
+        secret = System.getenv("secret")
     )
     val database = configureDatabases(dataBaseConfig)
     val usersService = UsersServiceImpl(database)
