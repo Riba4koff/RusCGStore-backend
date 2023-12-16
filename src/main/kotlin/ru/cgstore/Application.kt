@@ -1,6 +1,7 @@
 package ru.cgstore
 
 import io.ktor.server.application.*
+import io.ktor.server.resources.*
 import ru.cgstore.plugins.*
 import ru.cgstore.security.hash_service.Sha256HashingService
 import ru.cgstore.security.token_service.JwtTokenService
@@ -31,6 +32,7 @@ fun Application.module() {
     val tokenService = JwtTokenService()
     val hashingService = Sha256HashingService()
 
+    //configureResources()
     configureSockets()
     configureSerialization()
     configureMonitoring()

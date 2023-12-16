@@ -1,6 +1,7 @@
 val ktor_version: String by project
 val kotlin_version: String by project
 val logback_version: String by project
+val kotlinx_serialization_version: String by project
 
 val exposed_version: String by project
 val h2_version: String by project
@@ -43,6 +44,7 @@ dependencies {
 
     // serialization
     implementation("io.ktor:ktor-serialization-kotlinx-json-jvm")
+    implementation("io.ktor:ktor-serialization-kotlinx:$kotlinx_serialization_version")
 
     // swagger
     implementation("io.ktor:ktor-server-swagger-jvm")

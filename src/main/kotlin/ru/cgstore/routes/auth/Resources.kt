@@ -1,11 +1,13 @@
 package ru.cgstore.routes.auth
 
 import io.ktor.resources.*
-@Resource("/auth")
-class Auth {
-    @Resource("sign_in")
-    class SignIn()
+import kotlinx.serialization.Serializable
+import ru.cgstore.requests.users.SignInUserRequest
 
-    @Resource("sign_up")
-    class SignUp()
+@Resource("sign_in")
+class SignIn {
+
 }
+
+@Resource("sign_up")
+class SignUp

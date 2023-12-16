@@ -6,6 +6,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import ru.cgstore.requests.users.SignInUserRequest
+import io.ktor.server.resources.post
 import ru.cgstore.requests.users.SignUpUserRequest
 import ru.cgstore.responses.auth.AuthResponse
 import ru.cgstore.security.hash_service.HashingService
@@ -21,16 +22,18 @@ fun Route.auth(
     hashingService: HashingService,
     tokenConfig: TokenConfig
 ) {
-    signIn(
-        usersService = usersService,
-        tokenService = tokenService,
-        hashingService = hashingService,
-        tokenConfig = tokenConfig
-    )
-    signUp(
-        usersService = usersService,
-        hashingService = hashingService
-    )
+    route("auth") {
+        signIn(
+            usersService = usersService,
+            tokenService = tokenService,
+            hashingService = hashingService,
+            tokenConfig = tokenConfig
+        )
+        signUp(
+            usersService = usersService,
+            hashingService = hashingService
+        )
+    }
 }
 
 private fun Route.signIn(
@@ -39,9 +42,8 @@ private fun Route.signIn(
     hashingService: HashingService,
     tokenConfig: TokenConfig
 ) {
-    post("auth/sign_in") {
+    post<SignIn> { _ ->
         val request = call.receive(SignInUserRequest::class)
-
         usersService.readByLogin(request.login).fold(
             ifLeft = { failure ->
                 call.respond(HttpStatusCode.NotFound, failure.message)
@@ -71,7 +73,7 @@ private fun Route.signUp(
     usersService: UsersService,
     hashingService: HashingService
 ) {
-    post("auth/sign_up") {
+    post<SignUp> { _ ->
         val request = call.receive(SignUpUserRequest::class)
 
         val areFieldsBlank =
