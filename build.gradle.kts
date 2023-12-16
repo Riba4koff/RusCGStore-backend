@@ -2,6 +2,7 @@ val ktor_version: String by project
 val kotlin_version: String by project
 val logback_version: String by project
 val kotlinx_serialization_version: String by project
+val koin_version: String by project
 
 val exposed_version: String by project
 val h2_version: String by project
@@ -85,4 +86,9 @@ dependencies {
 
     //kotlinx.datetime
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.0")
+
+    // Dependency injection
+    implementation("io.insert-koin:koin-ktor:$koin_version")
+    implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
+    implementation("io.insert-koin:koin-core:$koin_version")
 }

@@ -7,6 +7,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import ru.cgstore.requests.users.SignInUserRequest
 import io.ktor.server.resources.post
+import org.koin.ktor.ext.inject
 import ru.cgstore.requests.users.SignUpUserRequest
 import ru.cgstore.responses.auth.AuthResponse
 import ru.cgstore.security.hash_service.HashingService
@@ -15,6 +16,7 @@ import ru.cgstore.security.token_service.TokenClaim
 import ru.cgstore.security.token_service.TokenConfig
 import ru.cgstore.security.token_service.TokenService
 import ru.cgstore.storage.users.UsersService
+import ru.cgstore.storage.users.UsersServiceImpl
 
 fun Route.auth(
     usersService: UsersService,
@@ -51,7 +53,7 @@ private fun Route.signIn(
                 val isValidPassword = hashingService.verify(request.password, SaltedHash(user.hash, user.salt))
 
                 if (isValidPassword.not()) call.respond(
-                    status = HttpStatusCode.BadRequest,
+                    status = HttpStatusCode.Forbidden,
                     message = "Пароль неверный"
                 )
 
