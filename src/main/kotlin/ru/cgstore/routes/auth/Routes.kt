@@ -22,18 +22,16 @@ fun Route.auth(
     hashingService: HashingService,
     tokenConfig: TokenConfig
 ) {
-    route("auth") {
-        signIn(
-            usersService = usersService,
-            tokenService = tokenService,
-            hashingService = hashingService,
-            tokenConfig = tokenConfig
-        )
-        signUp(
-            usersService = usersService,
-            hashingService = hashingService
-        )
-    }
+    signIn(
+        usersService = usersService,
+        tokenService = tokenService,
+        hashingService = hashingService,
+        tokenConfig = tokenConfig
+    )
+    signUp(
+        usersService = usersService,
+        hashingService = hashingService
+    )
 }
 
 private fun Route.signIn(
@@ -42,7 +40,7 @@ private fun Route.signIn(
     hashingService: HashingService,
     tokenConfig: TokenConfig
 ) {
-    post<SignIn> { _ ->
+    post<Auth.SignIn> { _ ->
         val request = call.receive(SignInUserRequest::class)
         usersService.readByLogin(request.login).fold(
             ifLeft = { failure ->
@@ -73,7 +71,7 @@ private fun Route.signUp(
     usersService: UsersService,
     hashingService: HashingService
 ) {
-    post<SignUp> { _ ->
+    post<Auth.SignUp> { _ ->
         val request = call.receive(SignUpUserRequest::class)
 
         val areFieldsBlank =
