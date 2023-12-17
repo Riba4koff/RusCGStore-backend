@@ -30,7 +30,7 @@ jobs:
           echo "${{ secrets.SERVER_SSH_PRIVATE_KEY }}" > deploy_key.pem
           chmod 600 deploy_key.pem
           scp -i deploy_key.pem -o StrictHostKeyChecking=no build/libs/*.jar ${{ secrets.USER }}@${{ secrets.HOST }}:/cgstore
-          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.HOST }} "java -jar /cgstore/ruscgstore.jar"
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.HOST }} "sudo systemctl restart cgstore.service"
         env:
           PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
           ip: ${{ secrets.IP }}
