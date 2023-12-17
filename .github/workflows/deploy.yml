@@ -1,0 +1,32 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: 17
+
+      - name: Build Backend (skip tests)
+        run: ./gradlew build -x test
+
+      - name: Deploy to server
+        run: |
+          echo "${{ secrets.SERVER_SSH_PRIVATE_KEY }}" > deploy_key.pem
+          chmod 600 deploy_key.pem
+          scp -i deploy_key.pem -o StrictHostKeyChecking=no build/libs/*.jar ${{ secrets.USER }}@${{ secrets.HOST }}:/cgstore
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.HOST }} "sudo systemctl restart cgstore.service"
+        env:
+          PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
