@@ -9,6 +9,13 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      ip: ${{ ip}}
+      password: ${{ password }}
+      database: ${{ database }}
+      user: ${{ user }}
+      secret: ${{ secret}}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
