@@ -42,6 +42,8 @@ class UsersServiceImpl(database: Database) : UsersService {
         val role = varchar("role", 12).default(UserRole.USER.name)
         val banned = bool("banned").default(false)
         val birthday = varchar("birthday", 32)
+
+        override val primaryKey: PrimaryKey = PrimaryKey(id)
     }
 
     init {
