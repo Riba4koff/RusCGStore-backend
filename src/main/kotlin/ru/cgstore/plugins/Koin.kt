@@ -8,7 +8,6 @@ import org.koin.ktor.plugin.KoinApplicationStarted
 import org.koin.ktor.plugin.KoinApplicationStopPreparing
 import org.koin.ktor.plugin.KoinApplicationStopped
 import org.koin.logger.SLF4JLogger
-import ru.cgstore.di.appModule
 import ru.cgstore.di.securityModule
 import ru.cgstore.di.storageModule
 
