@@ -6,9 +6,10 @@ val koin_version: String by project
 
 val exposed_version: String by project
 val h2_version: String by project
+
 plugins {
     kotlin("jvm") version "1.9.10"
-    id("io.ktor.plugin") version "2.3.5"
+    id("io.ktor.plugin") version "2.3.7"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10" apply true
 }
 
@@ -16,13 +17,20 @@ group = "ru.cgstore"
 version = "0.0.1"
 
 application {
-    mainClass.set("io.ktor.server.cio.EngineMain")
+    //mainClass.set("io.ktor.server.cio.EngineMain")
+    mainClass.set("ru.cgstore.ApplicationKt")
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
 repositories {
     mavenCentral()
+}
+
+ktor {
+    fatJar {
+        archiveFileName.set("ruscgstore.jar")
+    }
 }
 
 dependencies {
@@ -49,6 +57,7 @@ dependencies {
 
     // swagger
     implementation("io.ktor:ktor-server-swagger-jvm")
+    implementation("io.ktor:ktor-server-swagger:$ktor_version")
 
     // resources
     implementation("io.ktor:ktor-server-resources")
