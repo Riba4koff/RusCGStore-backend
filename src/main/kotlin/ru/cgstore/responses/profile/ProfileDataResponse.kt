@@ -1,16 +1,13 @@
-package ru.cgstore.models.users
+package ru.cgstore.responses.profile
 
 import kotlinx.serialization.Serializable
+import ru.cgstore.models.users.UserRole
 
 @Serializable
-data class User(
-    val id: String,
+data class ProfileDataResponse(
     val login: String,
     val email: String,
     val phone: String,
-    val timestamp: String,
-    val hash: String,
-    val salt: String,
     val birthday: String,
     val role: UserRole,
     val banned: Boolean

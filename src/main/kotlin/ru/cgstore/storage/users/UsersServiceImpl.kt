@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.sql.*
@@ -11,7 +12,11 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 import ru.cgstore.models.Failure
 import ru.cgstore.models.users.User
+import ru.cgstore.models.users.UserRole
+import ru.cgstore.requests.profile.UpdateProfileRequest
 import ru.cgstore.requests.users.SignUpUserRequest
+import ru.cgstore.responses.UserDTO
+import ru.cgstore.responses.profile.ProfileDataResponse
 import ru.cgstore.security.hash_service.SaltedHash
 import ru.cgstore.storage.users.UsersServiceImpl.UsersTable.banned
 import ru.cgstore.storage.users.UsersServiceImpl.UsersTable.birthday
@@ -51,10 +56,10 @@ class UsersServiceImpl(database: Database) : UsersService {
 
     override suspend fun create(
         request: SignUpUserRequest,
-        saltedHash: SaltedHash
+        saltedHash: SaltedHash,
     ): Either<Failure, Unit> = Either.catch {
         dbQuery {
-            val timeOfCreate = kotlinx.datetime.Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val timeOfCreate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             UsersTable.insert {
                 it[id] = UUID.randomUUID().toString()
                 it[login] = request.login
@@ -64,58 +69,86 @@ class UsersServiceImpl(database: Database) : UsersService {
                 it[hash] = saltedHash.hash
                 it[salt] = saltedHash.salt
                 it[timestamp] = timeOfCreate.toString()
+                it[role] = UserRole.USER.name
             }
             Unit
         }
     }.mapLeft { error -> Failure.CreateFailure(error.message.orEmpty()) }
 
     override suspend fun loginExists(login: String): Either<Failure, Unit> = either<Failure, Unit> {
-        val loginExists = dbQuery { dbQuery { UsersTable.select { UsersTable.login eq login }.singleOrNull() == null } }
+        val loginExists = dbQuery { UsersTable.select { UsersTable.login eq login }.singleOrNull() == null }
         ensure(loginExists) {
             Failure.ValidationFailure("User with login: $login already exists.")
         }
-    }.mapLeft { error -> Failure.ReadFailure(error.message) }
+    }.mapLeft { error -> Failure.ValidationFailure(message = error.message) }
 
     override suspend fun emailExists(email: String): Either<Failure, Unit> = either<Failure, Unit> {
         val emailExists = dbQuery { UsersTable.select { UsersTable.email eq email }.singleOrNull() == null }
         ensure(emailExists) {
             Failure.ValidationFailure("User with email: $email already exists.")
         }
-    }.mapLeft { error -> Failure.ReadFailure(error.message.orEmpty()) }
+    }.mapLeft { error -> Failure.ValidationFailure(message = error.message) }
 
     override suspend fun phoneExists(phone: String): Either<Failure, Unit> = either<Failure, Unit> {
         val emailExists = dbQuery { UsersTable.select { UsersTable.phone eq phone }.singleOrNull() == null }
         ensure(emailExists) {
             Failure.ValidationFailure("User with phone: $phone already exists.")
         }
-    }.mapLeft { error -> Failure.ReadFailure(error.message.orEmpty()) }
+    }.mapLeft { error -> Failure.ValidationFailure(message = error.message) }
 
-    override suspend fun read(id: String): Either<Failure, User> = either<Failure, User> {
+    override suspend fun read(id: String): Either<Failure, ProfileDataResponse> = either<Failure, ProfileDataResponse> {
         dbQuery {
-            val user = UsersTable.select { UsersTable.id eq id }.map(::resultRowToUser).singleOrNull()
-            ensure(user != null) { Failure.ReadFailure("User with id: $id was not found.") }
-            user
+            val user = UsersTable.select { UsersTable.id eq id }.map(::resultRowToUserDTO).singleOrNull()
+            ensure(user != null) { Failure.ReadFailure(message = "User with id: $id was not found.") }
+            ProfileDataResponse(
+                login = user.login,
+                email = user.email,
+                phone = user.phone,
+                birthday = user.birthday,
+                role = UserRole.valueOf(user.role),
+                banned = user.banned
+            )
         }
-    }.mapLeft { error -> Failure.ReadFailure(error.message) }
+    }.mapLeft { error -> Failure.ReadFailure(message = error.message) }
 
     override suspend fun readByLogin(login: String): Either<Failure, User> = either<Failure, User> {
         dbQuery {
-            val resultRow = UsersTable.select { UsersTable.login eq login}.firstOrNull()
-            ensure(resultRow != null) { Failure.ReadFailure("User with login: $login was not found.") }
+            val resultRow = UsersTable.select { UsersTable.login eq login }.firstOrNull()
+            ensure(resultRow != null) { Failure.ReadFailure(message = "User with login: $login was not found.") }
             resultRowToUser(resultRow)
         }
-    }.mapLeft { error -> Failure.ReadFailure(error.message) }
+    }.mapLeft { error -> Failure.ReadFailure(message = error.message) }
 
-    override suspend fun read(): Either<Failure, List<User>> = Either.catch {
-        TODO("Not yet implemented")
-    }.mapLeft { error -> Failure.ReadFailure(error.message.orEmpty()) }
+    override suspend fun read(): Either<Failure, List<UserDTO>> = Either.catch {
+        dbQuery { UsersTable.selectAll().map(::resultRowToUserDTO) }
+    }.mapLeft { error -> Failure.ReadFailure(message = error.message.orEmpty()) }
 
-    override suspend fun update(): Either<Failure, Unit> = Either.catch {
-        TODO("Not yet implemented")
-    }.mapLeft { error -> Failure.UpdateFailure(error.message.orEmpty()) }
+    override suspend fun update(user_id: String, request: UpdateProfileRequest): Either<Failure, Unit> = either {
+        dbQuery {
+            if (request.email != null) emailExists(request.email).bind()
+            if (request.phone != null) emailExists(request.phone).bind()
+            UsersTable.update(where = { id eq user_id }) {
+                if (request.email != null) {
+                    it[email] = request.email
+                }
+                if (request.phone != null) {
+                    it[phone] = request.phone
+                }
+                if (request.birthday != null) {
+                    it[email] = request.birthday
+                }
+            }
+            Unit
+        }
+    }.mapLeft { error -> Failure.UpdateFailure(error.message) }
 
-    override suspend fun setRole(): Either<Failure, Unit> = Either.catch {
-        TODO("Not yet implemented")
+    override suspend fun setRole(user_id: String, role: UserRole): Either<Failure, Unit> = Either.catch {
+        dbQuery {
+            UsersTable.update(where = { id eq user_id }) {
+                it[UsersTable.role] = role.name
+            }
+        }
+        Unit
     }.mapLeft { error -> Failure.UpdateFailure(error.message.orEmpty()) }
 
     override suspend fun block(id: String): Either<Failure, Unit> = Either.catch {
@@ -132,16 +165,27 @@ class UsersServiceImpl(database: Database) : UsersService {
         Unit
     }.mapLeft { error -> Failure.UpdateFailure(error.message.orEmpty()) }
 
+    private fun resultRowToUserDTO(resultRow: ResultRow) = UserDTO(
+        id = resultRow[id],
+        login = resultRow[login],
+        email = resultRow[email],
+        phone = resultRow[phone],
+        birthday = resultRow[birthday],
+        role = resultRow[role],
+        banned = resultRow[banned]
+    )
+
     private fun resultRowToUser(resultRow: ResultRow) = User(
         id = resultRow[id],
         login = resultRow[login],
         email = resultRow[email],
         phone = resultRow[phone],
+        birthday = resultRow[birthday],
+        role = UserRole.valueOf(resultRow[role]),
+        banned = resultRow[banned],
         timestamp = resultRow[timestamp],
         hash = resultRow[hash],
-        salt = resultRow[salt],
-        birthday = resultRow[birthday],
-        role = resultRow[role],
-        banned = resultRow[banned]
+        salt = resultRow[salt]
     )
+
 }

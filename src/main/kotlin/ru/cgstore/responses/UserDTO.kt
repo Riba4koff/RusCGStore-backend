@@ -1,17 +1,14 @@
-package ru.cgstore.models.users
+package ru.cgstore.responses
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class User(
+data class UserDTO(
     val id: String,
     val login: String,
     val email: String,
     val phone: String,
-    val timestamp: String,
-    val hash: String,
-    val salt: String,
     val birthday: String,
-    val role: UserRole,
+    val role: String,
     val banned: Boolean
 )
