@@ -8,13 +8,6 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
-    env:
-      ip: ${{ env.IP}}
-      password: ${{ env.PASSWORD }}
-      database: ${{ env.DATABASE }}
-      user: ${{ env.USER }}
-      secret: ${{ env.SECRET }}
     
     steps:
       - name: Checkout code
