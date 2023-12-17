@@ -14,7 +14,7 @@ class FeedBack {
     data class All(
         val parent: FeedBack = FeedBack(),
         val modelID: String = "",
-        val page: Int = 0,
+        val page: Long = 0,
         val size: Int = 16,
     )
 }

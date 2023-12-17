@@ -14,7 +14,7 @@ interface FeedBackService {
     suspend fun getAllByModelID(
         model_id: String,
         size: Int,
-        page: Int
+        page: Long
     ): Either<Failure, List<FeedBackDTO>>
     suspend fun getFeedBackByID(id: String): Either<Failure, FeedBackDTO?>
     suspend fun delete(id: String): Either<Failure, Unit>

@@ -3,6 +3,7 @@ val kotlin_version: String by project
 val logback_version: String by project
 val kotlinx_serialization_version: String by project
 val koin_version: String by project
+val swagger_codegen_version: String by project
 
 val exposed_version: String by project
 val h2_version: String by project
@@ -57,7 +58,9 @@ dependencies {
 
     // swagger
     implementation("io.ktor:ktor-server-swagger-jvm")
+    implementation("io.ktor:ktor-server-openapi:$ktor_version")
     implementation("io.ktor:ktor-server-swagger:$ktor_version")
+    implementation("io.swagger.codegen.v3:swagger-codegen-generators:$swagger_codegen_version")
 
     // resources
     implementation("io.ktor:ktor-server-resources")

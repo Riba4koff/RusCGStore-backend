@@ -17,9 +17,10 @@ import ru.cgstore.requests.render_models.CreateRenderModelRequest
 import ru.cgstore.requests.render_models.UpdateModelRequest
 import ru.cgstore.routes.render_models.MESSAGES.CANNOT_DELETE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.PARAMETER_ID_WAS_MISSING
+import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_CREATE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_DELETE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_RECEIVE_MODELS
-import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_UPATE_MODEL
+import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_UPDATE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.USER_NOT_FOUND
 import ru.cgstore.storage.render_model.RenderModelService
 
@@ -28,8 +29,9 @@ private object MESSAGES {
     const val SUCCESS_RECEIVE_MODELS = "Модели успешно загружены"
     const val PARAMETER_ID_WAS_MISSING = "Пропущен параметр ID"
     const val CANNOT_DELETE_MODEL = "Вы не можете удалить модель, которая создана другим пользователем"
-    const val SUCCESS_DELETE_MODEL = "Модель успешно удалена"
-    const val SUCCESS_UPATE_MODEL = "Модель успешно обновлена"
+    const val SUCCESS_DELETE_MODEL = "Модель удалена"
+    const val SUCCESS_CREATE_MODEL = "Модель создана"
+    const val SUCCESS_UPDATE_MODEL = "Модель обновлена"
 }
 
 fun Route.renderModels(
@@ -48,40 +50,39 @@ fun Route.renderModels(
 
             renderModelService.create(
                 author_id = userID,
-                cost = request.cost,
-                polygons = request.polygons,
-                vertices = request.vertices
+                request = request
             ).fold(
                 ifLeft = { failure ->
                     call.respond(HttpStatusCode.BadRequest, failure.message)
                     return@put
                 },
                 ifRight = {
-                    call.respond(HttpStatusCode.OK)
+                    call.respond(HttpStatusCode.OK, SUCCESS_CREATE_MODEL)
                     return@put
                 }
             )
         }
         get<Models.All> { route ->
-            renderModelService.readAll().fold(
+            renderModelService.readAll(page = route.page, size = route.size).fold(
                 ifLeft = { failure ->
                     call.respond(HttpStatusCode.BadRequest, failure.message)
                     return@get
                 },
-                ifRight = {
+                ifRight = { models ->
                     call.respond(
                         HttpStatusCode.OK, PageResponse(
                             message = SUCCESS_RECEIVE_MODELS,
-                            data = it,
+                            data = models,
+                            size = route.size,
                             page = route.page,
-                            size = route.size
+                            number_of_found = models.size
                         )
                     )
                     return@get
                 }
             )
         }
-        delete<Models.ID> { route ->
+        delete<Models.ID.Delete> { route ->
             val userID: String? = call.principal<JWTPrincipal>()?.get("id")
 
             if (userID == null) {
@@ -89,12 +90,12 @@ fun Route.renderModels(
                 return@delete
             }
 
-            if (route.id == null) {
+            if (route.parent.id == null) {
                 call.respond(HttpStatusCode.BadRequest, PARAMETER_ID_WAS_MISSING)
                 return@delete
             }
 
-            renderModelService.readByID(route.id).fold(
+            renderModelService.readByID(route.parent.id).fold(
                 ifLeft = { failure ->
                     when (failure) {
                         is Failure.ReadFailure -> call.respond(failure.statusCode, failure.message)
@@ -107,7 +108,7 @@ fun Route.renderModels(
                         call.respond(HttpStatusCode.Forbidden, CANNOT_DELETE_MODEL)
                         return@delete
                     }
-                    renderModelService.delete(route.id).fold(
+                    renderModelService.delete(route.parent.id).fold(
                         ifLeft = { failure ->
                             call.respond(HttpStatusCode.BadRequest, failure.message)
                         },
@@ -119,7 +120,7 @@ fun Route.renderModels(
                 }
             )
         }
-        post<Models.ID> { route ->
+        post<Models.ID.Update> { route ->
             val userID: String? = call.principal<JWTPrincipal>()?.get("id")
 
             if (userID == null) {
@@ -127,7 +128,7 @@ fun Route.renderModels(
                 return@post
             }
 
-            if (route.id == null) {
+            if (route.parent.id == null) {
                 call.respond(HttpStatusCode.BadRequest, PARAMETER_ID_WAS_MISSING)
                 return@post
             }
@@ -135,7 +136,7 @@ fun Route.renderModels(
             val request = call.receive(UpdateModelRequest::class)
 
             renderModelService.update(
-                id = route.id,
+                id = route.parent.id,
                 request = request
             ).fold(
                 ifLeft = { failure ->
@@ -143,7 +144,7 @@ fun Route.renderModels(
                     return@post
                 },
                 ifRight = {
-                    call.respond(HttpStatusCode.OK, SUCCESS_UPATE_MODEL)
+                    call.respond(HttpStatusCode.OK, SUCCESS_UPDATE_MODEL)
                     return@post
                 }
             )

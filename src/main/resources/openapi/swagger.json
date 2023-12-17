@@ -1,71 +1,540 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.0.0",
   "info": {
     "title": "RusCGStore",
-    "version": "1.0"
+    "version": "1.0.0"
   },
   "paths": {
-    "/signin": {
+    "/auth/sign_in": {
       "post": {
+        "summary": "Вход",
         "tags": [
           "Авторизация"
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SignInUserRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
-            "description": "",
+            "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
-                }
-              },
-              "application/xml": {
                 "schema": {
                   "$ref": "#/components/schemas/AuthResponse"
                 }
               }
             }
           },
-          "400": {
-            "description": "Invalid login or password!"
+          "401": {
+            "description": ""
+          },
+          "403": {
+            "description": "Пароль неверный"
           },
           "404": {
-            "description": "User with this login was not found."
+            "description": "Пользователь не найден"
           }
         }
       }
     },
-    "/signup": {
+    "/auth/sign_up": {
       "post": {
+        "summary": "Регистрация",
         "tags": [
           "Авторизация"
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SignUpUserRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
             "description": ""
           },
+          "401": {
+            "description": ""
+          },
           "409": {
-            "description": "Email / Login / Phone already exist."
+            "description": "User with the same login, email, or phone already exists"
+          }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "summary": "Получить данные профиля",
+        "tags": [
+          "profile"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Профиль успешно загружен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Пользователь не найден"
+          }
+        }
+      }
+    },
+    "/profile/models": {
+      "get": {
+        "summary": "Получить модели пользователя",
+        "tags": [
+          "profile"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Модели успешно загружены",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileModelsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": "Пользователь не найден"
+          }
+        }
+      }
+    },
+    "/profile/update": {
+      "post": {
+        "summary": "Обновить данные пользователя",
+        "tags": [
+          "profile"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Данные успешно обновлены"
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": "Пользователь не найден"
+          }
+        }
+      }
+    },
+    "/models/create": {
+      "put": {
+        "summary": "Создать новую рендер модель",
+        "tags": [
+          "Модели"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRenderModelRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Модель создана"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Пользователь не найден"
+          }
+        }
+      }
+    },
+    "/models/all": {
+      "get": {
+        "summary": "Получить все модели",
+        "tags": [
+          "Модели"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Пользователь не найден"
+          }
+        }
+      }
+    },
+    "/models/{id}": {
+      "get": {
+        "summary": "Получить модель по идентификатору",
+        "tags": [
+          "Модели"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Модель загружена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Модель не найдена"
+          }
+        }
+      }
+    },
+    "/models/{id}/delete": {
+      "delete": {
+        "summary": "Удалить модель по идентификатору",
+        "tags": [
+          "Модели"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Модель удалена"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Cannot delete a model created by another user"
+          },
+          "404": {
+            "description": "Модель не найдена"
+          }
+        }
+      }
+    },
+    "/models/{id}/update": {
+      "post": {
+        "summary": "Обновить модель по идентификатору",
+        "tags": [
+          "Модели"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateModelRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Модель обновлена"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Пользователь не найден"
+          }
+        }
+      }
+    },
+    "/feedback/all/{modelID}": {
+      "get": {
+        "summary": "Получить все отзывы по идентификатору модели",
+        "tags": [
+          "Отзывы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "modelID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Отзывы успешно загружены",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbacksResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": "Модель не найдена"
+          }
+        }
+      }
+    },
+    "/feedback/{id}": {
+      "get": {
+        "summary": "Получить отзыв по идентификатору",
+        "tags": [
+          "Отзывы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Отзыв успешно загружен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedBackResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": "Отзыв не найден"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить отзыв по идентификатору",
+        "tags": [
+          "Отзывы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Отзыв успешно удален"
+          },
+          "401": {
+            "description": ""
+          },
+          "403": {
+            "description": "Отказано в доступе"
+          },
+          "404": {
+            "description": "Отзыв не найден"
+          }
+        }
+      }
+    },
+    "/feedback": {
+      "put": {
+        "summary": "Создать отзыв",
+        "tags": [
+          "Отзывы"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFeedBackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Отзыв успешно создан"
+          },
+          "401": {
+            "description": ""
+          },
+          "404": {
+            "description": "Пользователь не найден"
           }
         }
       }
@@ -80,6 +549,337 @@
       }
     },
     "schemas": {
+      "ModelResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "$ref": "#/components/schemas/FeedBackDTO"
+          }
+        }
+      },
+      "FeedbacksResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeedBackDTO"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "number_of_found": {
+            "type": "integer"
+          }
+        }
+      },
+      "ModelsResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RenderModelDTO"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "number_of_found": {
+            "type": "integer"
+          }
+        }
+      },
+      "FeedBackResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "$ref": "#/components/schemas/FeedBackDTO"
+          }
+        }
+      },
+      "ProfileResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "$ref": "#/components/schemas/ProfileDataResponse"
+          }
+        }
+      },
+      "ProfileModelsResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RenderModelDTO"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "number_of_found": {
+            "type": "integer"
+          }
+        }
+      },
+      "FeedBackDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "model_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      },
+      "RenderModelDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "p_date": {
+            "type": "string"
+          },
+          "author_id": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "polygons": {
+            "type": "integer"
+          },
+          "vertices": {
+            "type": "integer"
+          }
+        }
+      },
+      "ModelTagDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "model_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "login": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "salt": {
+            "type": "string"
+          },
+          "birthday": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "banned": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "ADMIN",
+          "MANAGER",
+          "DEVELOPER",
+          "USER"
+        ]
+      },
+      "ReceiveFeedBackResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "PageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "number_of_found": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateFeedBackRequest": {
+        "type": "object",
+        "properties": {
+          "model_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number"
+          }
+        }
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "birthday": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateRenderModelRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "polygons": {
+            "type": "integer"
+          },
+          "vertices": {
+            "type": "integer"
+          }
+        }
+      },
+      "UpdateModelRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "polygons": {
+            "type": "integer"
+          },
+          "vertices": {
+            "type": "integer"
+          }
+        }
+      },
+      "SignInUserRequest": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
       "SignUpUserRequest": {
         "type": "object",
         "properties": {
@@ -100,22 +900,60 @@
           }
         }
       },
-      "SignInUserRequest": {
-        "type": "object",
-        "properties": {
-          "login": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          }
-        }
-      },
       "AuthResponse": {
         "type": "object",
         "properties": {
           "token": {
             "type": "string"
+          }
+        }
+      },
+      "ProfileDataResponse": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "birthday": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "banned": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UserDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "login": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "birthday": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "banned": {
+            "type": "boolean"
           }
         }
       }

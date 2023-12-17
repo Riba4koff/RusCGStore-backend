@@ -67,7 +67,8 @@ fun Route.feedback(
                             message = SUCCESS_RECEIVE_FEEDBACKS,
                             data = feedbacks,
                             size = route.size,
-                            page = route.page
+                            page = route.page,
+                            number_of_found = feedbacks.size
                         )
                     )
                     return@get

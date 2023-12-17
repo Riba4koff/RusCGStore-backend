@@ -63,7 +63,11 @@ fun Route.provideProfile(
                 return@get
             }
 
-            renderModelService.readByUserID(userID).fold(
+            renderModelService.readByUserID(
+                author_id = userID,
+                page = route.page,
+                size = route.size
+            ).fold(
                 ifLeft = { failure ->
                     call.respond(HttpStatusCode.BadRequest, failure.message)
                     return@get
@@ -75,7 +79,8 @@ fun Route.provideProfile(
                             message = SUCCESS_RECEIVE_MODELS,
                             data = models,
                             size = route.size,
-                            page = route.page
+                            page = route.page,
+                            number_of_found = models.size
                         )
                     )
                     return@get

@@ -5,6 +5,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RenderModelDTO(
     val id: String,
+    val name: String,
+    val description: String,
     val p_date: String,
     val author_id: String,
     val cost: Double,

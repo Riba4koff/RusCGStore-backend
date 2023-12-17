@@ -1,7 +1,9 @@
 package ru.cgstore.plugins
 
 import io.ktor.server.application.*
+import io.ktor.server.plugins.openapi.*
 import io.ktor.server.routing.*
+import io.swagger.codegen.v3.generators.html.StaticHtmlCodegen
 import ru.cgstore.security.hash_service.HashingService
 import ru.cgstore.security.token_service.TokenConfig
 import ru.cgstore.security.token_service.TokenService

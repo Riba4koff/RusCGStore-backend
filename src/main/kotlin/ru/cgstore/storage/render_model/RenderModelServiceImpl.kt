@@ -15,10 +15,13 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 import ru.cgstore.models.Failure
 import ru.cgstore.models.render_model.RenderModelDTO
+import ru.cgstore.requests.render_models.CreateRenderModelRequest
 import ru.cgstore.requests.render_models.UpdateModelRequest
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.author_id
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.cost
+import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.description
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.id
+import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.name
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.p_date
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.polygons
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.vertices
@@ -32,6 +35,8 @@ class RenderModelServiceImpl(database: Database) : RenderModelService {
 
     object RenderModelTable : Table("render_model") {
         val id = varchar("id", 36)
+        val name = varchar("name", 64)
+        val description = varchar("description", 512)
         val author_id = varchar("author_id", 36)
         val p_date = varchar("p_date", 64)
         val cost = double("double")
@@ -53,31 +58,38 @@ class RenderModelServiceImpl(database: Database) : RenderModelService {
 
     override suspend fun create(
         author_id: String,
-        cost: Double,
-        polygons: Long,
-        vertices: Long,
+        request: CreateRenderModelRequest,
     ): Either<Failure, Unit> = Either.catch {
         val timeOfCreate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).toString()
         dbQuery {
             RenderModelTable.insert {
                 it[id] = UUID.randomUUID().toString()
-                it[RenderModelTable.author_id] = author_id
                 it[p_date] = timeOfCreate
-                it[RenderModelTable.cost] = cost
-                it[RenderModelTable.polygons] = polygons
-                it[RenderModelTable.vertices] = vertices
+                it[RenderModelTable.author_id] = author_id
+                it[name] = request.name
+                it[description] = request.description
+                it[cost] = request.cost
+                it[polygons] = request.polygons
+                it[vertices] = request.vertices
             }
         }
         Unit
     }.mapLeft { Failure.CreateFailure(it.message.orEmpty()) }
 
-    override suspend fun readAll(): Either<Failure, List<RenderModelDTO>> = Either.catch {
-        dbQuery { RenderModelTable.selectAll().map(::resultRowToDTO) }
+    override suspend fun readAll(page: Long, size: Int): Either<Failure, List<RenderModelDTO>> = Either.catch {
+        dbQuery {
+            RenderModelTable.selectAll().limit(size, (page - 1) * size).map(::resultRowToDTO)
+        }
     }.mapLeft { Failure.ReadFailure(message = it.message.orEmpty()) }
 
-    override suspend fun readByUserID(author_id: String): Either<Failure, List<RenderModelDTO>> = Either.catch {
-        dbQuery { RenderModelTable.select { RenderModelTable.author_id eq author_id }.map(::resultRowToDTO) }
-    }.mapLeft { failure -> Failure.ReadFailure(message = failure.message.orEmpty()) }
+    override suspend fun readByUserID(author_id: String, page: Long, size: Int): Either<Failure, List<RenderModelDTO>> =
+        Either.catch {
+            dbQuery {
+                RenderModelTable.select {
+                    RenderModelTable.author_id eq author_id
+                }.limit(size, (page - 1) * size).map(::resultRowToDTO)
+            }
+        }.mapLeft { failure -> Failure.ReadFailure(message = failure.message.orEmpty()) }
 
     override suspend fun readByID(id: String): Either<Failure, RenderModelDTO> = either {
         val model = dbQuery { RenderModelTable.select { RenderModelTable.id eq id }.singleOrNull() }
@@ -88,6 +100,8 @@ class RenderModelServiceImpl(database: Database) : RenderModelService {
     override suspend fun update(id: String, request: UpdateModelRequest) = Either.catch {
         dbQuery {
             RenderModelTable.update({ RenderModelTable.id eq id }) {
+                if (request.name != null) it[name] = request.name
+                if (request.description != null) it[description] = request.description
                 if (request.cost != null) it[cost] = request.cost
                 if (request.polygons != null) it[polygons] = request.polygons
                 if (request.vertices != null) it[vertices] = request.vertices
@@ -105,6 +119,8 @@ class RenderModelServiceImpl(database: Database) : RenderModelService {
 
     private fun resultRowToDTO(resultRow: ResultRow) = RenderModelDTO(
         id = resultRow[id],
+        name = resultRow[name],
+        description = resultRow[description],
         p_date = resultRow[p_date],
         author_id = resultRow[author_id],
         cost = resultRow[cost],

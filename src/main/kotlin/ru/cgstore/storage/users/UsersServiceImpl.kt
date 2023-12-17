@@ -15,7 +15,7 @@ import ru.cgstore.models.users.User
 import ru.cgstore.models.users.UserRole
 import ru.cgstore.requests.profile.UpdateProfileRequest
 import ru.cgstore.requests.users.SignUpUserRequest
-import ru.cgstore.responses.UserDTO
+import ru.cgstore.models.users.UserDTO
 import ru.cgstore.responses.profile.ProfileDataResponse
 import ru.cgstore.security.hash_service.SaltedHash
 import ru.cgstore.storage.users.UsersServiceImpl.UsersTable.banned
@@ -105,7 +105,7 @@ class UsersServiceImpl(database: Database) : UsersService {
                 email = user.email,
                 phone = user.phone,
                 birthday = user.birthday,
-                role = UserRole.valueOf(user.role),
+                role = user.role,
                 banned = user.banned
             )
         }
@@ -119,8 +119,8 @@ class UsersServiceImpl(database: Database) : UsersService {
         }
     }.mapLeft { error -> Failure.ReadFailure(message = error.message) }
 
-    override suspend fun read(): Either<Failure, List<UserDTO>> = Either.catch {
-        dbQuery { UsersTable.selectAll().map(::resultRowToUserDTO) }
+    override suspend fun read(size: Int, page: Long): Either<Failure, List<UserDTO>> = Either.catch {
+        dbQuery { UsersTable.selectAll().limit(size, (page - 1) * size).map(::resultRowToUserDTO) }
     }.mapLeft { error -> Failure.ReadFailure(message = error.message.orEmpty()) }
 
     override suspend fun update(user_id: String, request: UpdateProfileRequest): Either<Failure, Unit> = either {
@@ -171,7 +171,7 @@ class UsersServiceImpl(database: Database) : UsersService {
         email = resultRow[email],
         phone = resultRow[phone],
         birthday = resultRow[birthday],
-        role = resultRow[role],
+        role = UserRole.valueOf(resultRow[role]),
         banned = resultRow[banned]
     )
 

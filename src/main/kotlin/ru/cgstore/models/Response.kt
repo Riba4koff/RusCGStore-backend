@@ -12,6 +12,7 @@ data class Response<T>(
 data class PageResponse<T>(
     val message: String,
     val data: T? = null,
-    val page: Int,
-    val size: Int
+    val page: Long,
+    val size: Int,
+    val number_of_found: Int
 )

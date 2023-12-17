@@ -73,12 +73,12 @@ class FeedBackServiceImpl(database: Database) : FeedBackService {
     override suspend fun getAllByModelID(
         model_id: String,
         size: Int,
-        page: Int,
+        page: Long,
     ): Either<Failure, List<FeedBackDTO>> = Either.catch {
         dbQuery {
             FeedBackTable.select {
                 FeedBackTable.model_id eq model_id
-            }.map(::resultRowToDTO)
+            }.limit(size, (page - 1) * size).map(::resultRowToDTO)
         }
     }.mapLeft { failure ->
         failure.printStackTrace()

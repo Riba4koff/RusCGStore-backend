@@ -6,14 +6,14 @@ import ru.cgstore.models.users.User
 import ru.cgstore.models.users.UserRole
 import ru.cgstore.requests.profile.UpdateProfileRequest
 import ru.cgstore.requests.users.SignUpUserRequest
-import ru.cgstore.responses.UserDTO
+import ru.cgstore.models.users.UserDTO
 import ru.cgstore.responses.profile.ProfileDataResponse
 import ru.cgstore.security.hash_service.SaltedHash
 
 interface UsersService {
     suspend fun create(request: SignUpUserRequest, saltedHash: SaltedHash): Either<Failure, Unit>
     suspend fun read(id: String): Either<Failure, ProfileDataResponse>
-    suspend fun read(): Either<Failure, List<UserDTO>>
+    suspend fun read(size: Int, page: Long): Either<Failure, List<UserDTO>>
     suspend fun readByLogin(login: String): Either<Failure, User>
     suspend fun loginExists(login: String): Either<Failure, Unit>
     suspend fun emailExists(email: String): Either<Failure, Unit>
