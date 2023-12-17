@@ -1,4 +1,5 @@
-﻿# RusCGStore-backend
+
+# RusCGStore-backend
 
 ## Service-settings
 
@@ -19,3 +20,5 @@ ExecStart=/usr/bin/java -jar ruscgstore.jar
 [Install]
 WantedBy=multi-user.target
 ```
+
+
