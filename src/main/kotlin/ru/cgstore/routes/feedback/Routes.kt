@@ -14,10 +14,13 @@ import io.ktor.server.response.*
 import ru.cgstore.models.Failure
 import ru.cgstore.models.PageResponse
 import ru.cgstore.models.Response
+import ru.cgstore.models.feedback.FeedBackDTO
+import ru.cgstore.models.render_model.RenderModelDTO
 import ru.cgstore.models.users.UserRole
 import ru.cgstore.requests.feedback.CreateFeedBackRequest
 import ru.cgstore.requests.render_models.CreateRenderModelRequest
 import ru.cgstore.routes.feedback.MESSAGES.FEEDBACK_NOT_FOUND
+import ru.cgstore.routes.feedback.MESSAGES.MODEL_NOT_FOUND
 import ru.cgstore.routes.feedback.MESSAGES.NOT_ENOUGH_RIGHTS
 import ru.cgstore.routes.feedback.MESSAGES.SUCCESS_CREATED_FEEDBACK
 import ru.cgstore.routes.feedback.MESSAGES.SUCCESS_RECEIVE_FEEDBACK
@@ -36,12 +39,13 @@ private object MESSAGES {
     const val NOT_ENOUGH_RIGHTS = "Недостаточно прав"
     const val SUCCESS_REMOVED_FEEDBACK = "Отзыв удален"
     const val SUCCESS_CREATED_FEEDBACK = "Отзыв успешно добавлен"
+    const val MODEL_NOT_FOUND = "Модель не найдена"
 }
 
 fun Route.feedback(
     feedBackService: FeedBackService,
     usersService: UsersService,
-    renderModelService: RenderModelService
+    renderModelService: RenderModelService,
 ) {
     authenticate {
         get<FeedBack.All> { route ->
@@ -49,6 +53,22 @@ fun Route.feedback(
 
             if (userID == null) {
                 call.respond(HttpStatusCode.NotFound, USER_NOT_FOUND)
+                return@get
+            }
+
+            val model = renderModelService.readByID(route.modelID).getOrNull()
+
+            if (model == null) {
+                call.respond(
+                    status = HttpStatusCode.NotFound,
+                    message = PageResponse(
+                        message = MODEL_NOT_FOUND,
+                        data = emptyList<FeedBackDTO>(),
+                        page = 0,
+                        size = 0,
+                        number_of_found = 0
+                    )
+                )
                 return@get
             }
 
@@ -79,17 +99,34 @@ fun Route.feedback(
             val userID: String? = call.principal<JWTPrincipal>()?.get("id")
 
             if (userID == null) {
-                call.respond(HttpStatusCode.NotFound, USER_NOT_FOUND)
+                call.respond(
+                    HttpStatusCode.NotFound, Response(
+                        message = USER_NOT_FOUND,
+                        data = null
+                    )
+                )
                 return@get
             }
 
             feedBackService.getFeedBackByID(route.id).fold(
                 ifLeft = { failure ->
                     call.respond(HttpStatusCode.BadRequest, failure.message)
+                    return@get
                 },
                 ifRight = { feedback ->
-                    if (feedback == null) call.respond(HttpStatusCode.NotFound, FEEDBACK_NOT_FOUND) else
-                        call.respond(HttpStatusCode.OK, Response(message = SUCCESS_RECEIVE_FEEDBACK, data = feedback))
+                    if (feedback == null) call.respond(
+                        HttpStatusCode.NotFound,
+                        message = Response(
+                            message = FEEDBACK_NOT_FOUND,
+                            data = null
+                        )
+                    ) else
+                        call.respond(
+                            HttpStatusCode.OK, Response(
+                                message = SUCCESS_RECEIVE_FEEDBACK,
+                                data = feedback
+                            )
+                        )
                     return@get
                 }
             )
@@ -98,7 +135,13 @@ fun Route.feedback(
             val userID: String? = call.principal<JWTPrincipal>()?.get("id")
 
             if (userID == null) {
-                call.respond(HttpStatusCode.NotFound, USER_NOT_FOUND)
+                call.respond(
+                    HttpStatusCode.NotFound,
+                    Response(
+                        message = USER_NOT_FOUND,
+                        data = null
+                    )
+                )
                 return@delete
             }
 
@@ -111,7 +154,12 @@ fun Route.feedback(
                     if (user.role != UserRole.ADMIN) call.respond(HttpStatusCode.Forbidden, NOT_ENOUGH_RIGHTS)
                     else feedBackService.delete(route.id).fold(
                         ifLeft = { failure ->
-                            call.respond(HttpStatusCode.BadRequest, failure.message)
+                            call.respond(
+                                HttpStatusCode.BadRequest, Response(
+                                    message = failure.message,
+                                    data = null
+                                )
+                            )
                             return@delete
                         },
                         ifRight = {
@@ -120,9 +168,7 @@ fun Route.feedback(
                     )
                 }
             )
-
-
-            call.respond(HttpStatusCode.OK, "hello, world!")
+            return@delete
         }
         put<FeedBack.Create> { _ ->
             val userID: String? = call.principal<JWTPrincipal>()?.get("id")
