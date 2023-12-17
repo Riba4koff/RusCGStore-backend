@@ -36,5 +36,5 @@ jobs:
           ip: ${{ secrets.IP }}
           password: ${{ secrets.PASSWORD }}
           database: ${{ secrets.DATABASE }}
-          user: ${{ secrets.USER }}
+          user: ${{ secrets.DB_USER }}
           secret: ${{ secrets.SECRET }}
