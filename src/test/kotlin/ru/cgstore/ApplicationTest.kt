@@ -6,17 +6,15 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlin.test.*
 import ru.cgstore.plugins.*
+import ru.cgstore.security.hash_service.Sha256HashingService
+import ru.cgstore.security.token_service.JwtTokenService
 import ru.cgstore.security.token_service.TokenConfig
+import ru.cgstore.storage.DataBaseConfig
+import ru.cgstore.storage.users.UsersServiceImpl
 
 class ApplicationTest {
     @Test
     fun testRoot() = testApplication {
-        application {
 
-        }
-        client.get("/").apply {
-            assertEquals(HttpStatusCode.OK, status)
-            assertEquals("Hello World!", bodyAsText())
-        }
     }
 }

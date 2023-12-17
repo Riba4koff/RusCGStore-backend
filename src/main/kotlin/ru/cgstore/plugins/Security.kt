@@ -13,12 +13,6 @@ import io.ktor.server.sessions.*
 import ru.cgstore.security.token_service.TokenConfig
 
 fun Application.configureSecurity(config: TokenConfig) {
-    data class MySession(val count: Int = 0)
-    install(Sessions) {
-        cookie<MySession>("MY_SESSION") {
-            cookie.extensions["SameSite"] = "lax"
-        }
-    }
     authentication {
         jwt {
             realm = this@configureSecurity.environment.config.property("jwt.realm").getString()
@@ -32,13 +26,6 @@ fun Application.configureSecurity(config: TokenConfig) {
             validate { credential ->
                 if (credential.payload.audience.contains(config.audience)) JWTPrincipal(credential.payload) else null
             }
-        }
-    }
-    routing {
-        get("/session/increment") {
-            val session = call.sessions.get<MySession>() ?: MySession()
-            call.sessions.set(session.copy(count = session.count + 1))
-            call.respondText("Counter is ${session.count}. Refresh to increment.")
         }
     }
 }
