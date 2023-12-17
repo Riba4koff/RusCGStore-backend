@@ -19,6 +19,9 @@ jobs:
           distribution: 'adopt'
           java-version: 17
 
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
       - name: Build Backend (skip tests)
         run: ./gradlew build -x test
 
