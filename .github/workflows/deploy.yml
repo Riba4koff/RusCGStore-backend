@@ -33,3 +33,8 @@ jobs:
           ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.HOST }} "sudo systemctl restart cgstore.service"
         env:
           PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+          ip: ${{ secrets.IP }}
+          password: ${{ secrets.PASSWORD }}
+          database: ${{ secrets.DATABASE }}
+          user: ${{ secrets.USER }}
+          secret: ${{ secrets.SECRET }}
