@@ -39,8 +39,8 @@ class UsersServiceImpl(database: Database) : UsersService {
         val timestamp = varchar("timestamp", 29)
         val hash = varchar("hash", 100)
         val salt = varchar("salt", 100)
-        val role = varchar("role", 12)
-        val banned = bool("banned")
+        val role = varchar("role", 12).default(UserRole.USER.name)
+        val banned = bool("banned").default(false)
         val birthday = varchar("birthday", 32)
     }
 
