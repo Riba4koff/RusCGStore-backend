@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ip: ${{ IP}}
-      password: ${{ PASSWORD }}
-      database: ${{ DATABASE }}
-      user: ${{ USER }}
-      secret: ${{ SECRET }}
+      ip: ${{ env.IP}}
+      password: ${{ env.PASSWORD }}
+      database: ${{ env.DATABASE }}
+      user: ${{ env.USER }}
+      secret: ${{ env.SECRET }}
     
     steps:
       - name: Checkout code
