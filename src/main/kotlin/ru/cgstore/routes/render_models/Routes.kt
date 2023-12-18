@@ -78,7 +78,6 @@ fun Route.renderModels(
                 status = HttpStatusCode.BadRequest,
                 message = Response(
                     message = PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN,
-                    message = PARAMETER_LOGIN_WAS_MISSING,
                     data = null
                 )
             )
@@ -118,8 +117,6 @@ fun Route.renderModels(
                 call.respond(HttpStatusCode.NotFound, PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN)
                 return@put
             }
-
-            val login = call.principal<JWTPrincipal>()?.get("login")!!
 
             userService.readByLogin(login).onLeft { failure ->
                 call.respond(
@@ -162,26 +159,16 @@ fun Route.renderModels(
                 return@delete
             }
 
-            userService.readByLogin(login).onLeft { failure ->
-                // If user not found
+            // If parameter id was missing
+            if (route.parent.id == null) {
                 call.respond(
-                    status = HttpStatusCode.NotFound, message = Response(
-                        message = failure.message,
+                    status = HttpStatusCode.BadRequest,
+                    message = Response(
+                        message = PARAMETER_ID_WAS_MISSING,
                         data = null
                     )
                 )
-                return@delete
-            }.onRight { user ->
-                // If parameter id was missing
-                if (route.parent.id == null) {
-                    call.respond(
-                        status = HttpStatusCode.BadRequest,
-                        message = Response(
-                            message = PARAMETER_ID_WAS_MISSING,
-                            data = null
-                        )
-                    )
-            val login = call.principal<JWTPrincipal>()?.get("login")!!
+            }
 
             userService.readByLogin(login).onLeft { failure ->
                 // If user not found
@@ -272,7 +259,7 @@ fun Route.renderModels(
                 call.respond(HttpStatusCode.NotFound, PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN)
                 return@post
             }
-            val login = call.principal<JWTPrincipal>()?.get("login")!!
+
             userService.readByLogin(login).onLeft { failure ->
                 // If user not found
                 call.respond(
