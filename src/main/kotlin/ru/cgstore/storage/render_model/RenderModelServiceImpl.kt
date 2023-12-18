@@ -1,10 +1,8 @@
 package ru.cgstore.storage.render_model
 
 import arrow.core.Either
-import arrow.core.raise.Raise
 import arrow.core.raise.either
 import arrow.core.raise.ensure
-import arrow.core.raise.result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -17,7 +15,7 @@ import ru.cgstore.models.Failure
 import ru.cgstore.models.render_model.RenderModelDTO
 import ru.cgstore.requests.render_models.CreateRenderModelRequest
 import ru.cgstore.requests.render_models.UpdateModelRequest
-import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.author_id
+import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.author_login
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.cost
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.description
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.id
@@ -26,7 +24,6 @@ import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.p
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.polygons
 import ru.cgstore.storage.render_model.RenderModelServiceImpl.RenderModelTable.vertices
 import java.util.UUID
-import kotlin.math.cos
 
 class RenderModelServiceImpl(database: Database) : RenderModelService {
     private companion object {
@@ -37,7 +34,7 @@ class RenderModelServiceImpl(database: Database) : RenderModelService {
         val id = varchar("id", 36)
         val name = varchar("name", 64)
         val description = varchar("description", 512)
-        val author_id = varchar("author_id", 36)
+        val author_login = varchar("author_login", 36)
         val p_date = varchar("p_date", 64)
         val cost = double("double")
         val polygons = long("polygons")
@@ -57,7 +54,7 @@ class RenderModelServiceImpl(database: Database) : RenderModelService {
     }
 
     override suspend fun create(
-        author_id: String,
+        login: String,
         request: CreateRenderModelRequest,
     ): Either<Failure, Unit> = Either.catch {
         val timeOfCreate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).toString()
@@ -65,7 +62,7 @@ class RenderModelServiceImpl(database: Database) : RenderModelService {
             RenderModelTable.insert {
                 it[id] = UUID.randomUUID().toString()
                 it[p_date] = timeOfCreate
-                it[RenderModelTable.author_id] = author_id
+                it[RenderModelTable.author_login] = login
                 it[name] = request.name
                 it[description] = request.description
                 it[cost] = request.cost
@@ -82,11 +79,11 @@ class RenderModelServiceImpl(database: Database) : RenderModelService {
         }
     }.mapLeft { Failure.ReadFailure(message = it.message.orEmpty()) }
 
-    override suspend fun readByUserID(author_id: String, page: Long, size: Int): Either<Failure, List<RenderModelDTO>> =
+    override suspend fun readByUserLogin(login: String, page: Long, size: Int): Either<Failure, List<RenderModelDTO>>  =
         Either.catch {
             dbQuery {
                 RenderModelTable.select {
-                    RenderModelTable.author_id eq author_id
+                    RenderModelTable.author_login eq login
                 }.limit(size, (page - 1) * size).map(::resultRowToDTO)
             }
         }.mapLeft { failure -> Failure.ReadFailure(message = failure.message.orEmpty()) }
@@ -122,7 +119,7 @@ class RenderModelServiceImpl(database: Database) : RenderModelService {
         name = resultRow[name],
         description = resultRow[description],
         p_date = resultRow[p_date],
-        author_id = resultRow[author_id],
+        author_login = resultRow[author_login],
         cost = resultRow[cost],
         polygons = resultRow[polygons],
         vertices = resultRow[vertices]

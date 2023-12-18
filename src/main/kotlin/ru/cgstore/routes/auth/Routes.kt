@@ -60,6 +60,7 @@ private fun Route.signIn(
                 val token = tokenService.generate(
                     config = tokenConfig,
                     TokenClaim(name = "id", value = user.id),
+                    TokenClaim(name = "login", value = user.login),
                 )
 
                 call.respond(HttpStatusCode.OK, AuthResponse(token))

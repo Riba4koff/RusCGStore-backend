@@ -36,7 +36,10 @@ fun Application.configureRouting(config: TokenConfig) {
             usersService = usersService,
             renderModelService = renderModelService
         )
-        renderModels(renderModelService = renderModelService)
+        renderModels(
+            renderModelService = renderModelService,
+            userService = usersService
+        )
         provideProfile(
             usersService = usersService,
             renderModelService = renderModelService
