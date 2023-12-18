@@ -8,7 +8,7 @@ data class RenderModelDTO(
     val name: String,
     val description: String,
     val p_date: String,
-    val author_id: String,
+    val author_login: String,
     val cost: Double,
     val polygons: Long,
     val vertices: Long
