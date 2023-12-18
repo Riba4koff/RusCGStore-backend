@@ -20,6 +20,7 @@ import ru.cgstore.routes.render_models.MESSAGES.CANNOT_DELETE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.MODEL_NOT_FOUND
 import ru.cgstore.routes.render_models.MESSAGES.PARAMETER_ID_WAS_MISSING
 import ru.cgstore.routes.render_models.MESSAGES.PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN
+import ru.cgstore.routes.render_models.MESSAGES.PARAMETER_LOGIN_WAS_MISSING
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_CREATE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_DELETE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_RECEIVE_MODEL
@@ -33,6 +34,7 @@ private object MESSAGES {
     const val SUCCESS_RECEIVE_MODELS = "Модели успешно загружены"
     const val SUCCESS_RECEIVE_MODEL = "Модель успешно загружена"
     const val PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN = "Параметр ID не найден в JWT токене"
+    const val PARAMETER_LOGIN_WAS_MISSING = "Пропущен параметр login"
     const val PARAMETER_ID_WAS_MISSING = "Пропущен параметр ID"
     const val CANNOT_DELETE_MODEL = "Вы не можете удалить модель, которая создана другим пользователем"
     const val SUCCESS_DELETE_MODEL = "Модель удалена"
@@ -46,26 +48,29 @@ fun Route.renderModels(
     userService: UsersService,
 ) {
     get<Models.All> { route ->
-        renderModelService.readAll(page = route.page, size = route.size).onLeft  { failure ->
-            call.respond(
-                HttpStatusCode.BadRequest, Response(
-                    message = failure.message,
-                    data = null
+        renderModelService.readAll(page = route.page, size = route.size).fold(
+            ifLeft = { failure ->
+                call.respond(
+                    HttpStatusCode.BadRequest, Response(
+                        message = failure.message,
+                        data = null
+                    )
                 )
-            )
-            return@get
-        }.onRight { models ->
-            call.respond(
-                HttpStatusCode.OK, PageResponse(
-                    message = SUCCESS_RECEIVE_MODELS,
-                    data = models,
-                    size = route.size,
-                    page = route.page,
-                    number_of_found = models.size
+                return@get
+            },
+            ifRight = { models ->
+                call.respond(
+                    HttpStatusCode.OK, PageResponse(
+                        message = SUCCESS_RECEIVE_MODELS,
+                        data = models,
+                        size = route.size,
+                        page = route.page,
+                        number_of_found = models.size
+                    )
                 )
-            )
-            return@get
-        }
+                return@get
+            }
+        )
     }
     get<Models.ID> { route ->
         if (route.id == null) {
@@ -79,27 +84,30 @@ fun Route.renderModels(
             return@get
         }
 
-        renderModelService.readByID(id = route.id).onLeft { failure ->
-            val status = if (failure is Failure.ReadFailure) HttpStatusCode.NotFound
-            else HttpStatusCode.BadRequest
-            call.respond(
-                status = status,
-                message = Response(
-                    message = MODEL_NOT_FOUND,
-                    data = null
+        renderModelService.readByID(id = route.id).fold(
+            ifLeft = { failure ->
+                val status = if (failure is Failure.ReadFailure) HttpStatusCode.NotFound
+                else HttpStatusCode.BadRequest
+                call.respond(
+                    status = status,
+                    message = Response(
+                        message = MODEL_NOT_FOUND,
+                        data = null
+                    )
                 )
-            )
-            return@get
-        }.onRight { model ->
-            call.respond(
-                status = HttpStatusCode.OK,
-                message = Response(
-                    message = SUCCESS_RECEIVE_MODEL,
-                    data = model
+                return@get
+            },
+            ifRight = { model ->
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = Response(
+                        message = SUCCESS_RECEIVE_MODEL,
+                        data = model
+                    )
                 )
-            )
-            return@get
-        }
+                return@get
+            }
+        )
     }
     authenticate {
         put<Models.Create> {
@@ -149,6 +157,17 @@ fun Route.renderModels(
             if (login == null) {
                 call.respond(HttpStatusCode.NotFound, PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN)
                 return@delete
+            }
+
+            // If parameter id was missing
+            if (route.parent.id == null) {
+                call.respond(
+                    status = HttpStatusCode.BadRequest,
+                    message = Response(
+                        message = PARAMETER_ID_WAS_MISSING,
+                        data = null
+                    )
+                )
             }
 
             userService.readByLogin(login).onLeft { failure ->
