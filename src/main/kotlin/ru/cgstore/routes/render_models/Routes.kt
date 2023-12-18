@@ -19,7 +19,6 @@ import ru.cgstore.requests.render_models.UpdateModelRequest
 import ru.cgstore.routes.render_models.MESSAGES.CANNOT_DELETE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.MODEL_NOT_FOUND
 import ru.cgstore.routes.render_models.MESSAGES.PARAMETER_ID_WAS_MISSING
-import ru.cgstore.routes.render_models.MESSAGES.PARAMETER_LOGIN_WAS_MISSING
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_CREATE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_DELETE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_RECEIVE_MODEL
@@ -27,13 +26,11 @@ import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_RECEIVE_MODELS
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_UPDATE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.USER_NOT_FOUND
 import ru.cgstore.storage.render_model.RenderModelService
-import ru.cgstore.storage.users.UsersService
 
 private object MESSAGES {
     const val USER_NOT_FOUND = "Пользователь не найден"
     const val SUCCESS_RECEIVE_MODELS = "Модели успешно загружены"
     const val SUCCESS_RECEIVE_MODEL = "Модель успешно загружена"
-    const val PARAMETER_LOGIN_WAS_MISSING = "Пропущен параметр login"
     const val PARAMETER_ID_WAS_MISSING = "Пропущен параметр ID"
     const val CANNOT_DELETE_MODEL = "Вы не можете удалить модель, которая создана другим пользователем"
     const val SUCCESS_DELETE_MODEL = "Модель удалена"
@@ -44,7 +41,6 @@ private object MESSAGES {
 
 fun Route.renderModels(
     renderModelService: RenderModelService,
-    userService: UsersService,
 ) {
     get<Models.All> { route ->
         renderModelService.readAll(page = route.page, size = route.size).fold(
@@ -76,7 +72,7 @@ fun Route.renderModels(
             call.respond(
                 status = HttpStatusCode.BadRequest,
                 message = Response(
-                    message = PARAMETER_LOGIN_WAS_MISSING,
+                    message = PARAMETER_ID_WAS_MISSING,
                     data = null
                 )
             )
@@ -110,23 +106,25 @@ fun Route.renderModels(
     }
     authenticate {
         put<Models.Create> {
-            val login = call.principal<JWTPrincipal>()?.get("login")!!
+            val userID: String? = call.principal<JWTPrincipal>()?.get("id")
 
-            userService.readByLogin(login).onLeft { failure ->
+            if (userID == null) {
                 call.respond(
-                    status = HttpStatusCode.NotFound, message = Response(
-                        message = failure.message,
+                    HttpStatusCode.NotFound, Response(
+                        message = USER_NOT_FOUND,
                         data = null
                     )
                 )
                 return@put
-            }.onRight { user ->
-                val request = call.receive(CreateRenderModelRequest::class)
+            }
 
-                renderModelService.create(
-                    login = user.login,
-                    request = request
-                ).onLeft { failure ->
+            val request = call.receive(CreateRenderModelRequest::class)
+
+            renderModelService.create(
+                author_id = userID,
+                request = request
+            ).fold(
+                ifLeft = { failure ->
                     call.respond(
                         HttpStatusCode.BadRequest, Response(
                             message = failure.message,
@@ -134,7 +132,8 @@ fun Route.renderModels(
                         )
                     )
                     return@put
-                }.onRight {
+                },
+                ifRight = {
                     call.respond(
                         HttpStatusCode.OK, Response(
                             message = SUCCESS_CREATE_MODEL,
@@ -143,37 +142,36 @@ fun Route.renderModels(
                     )
                     return@put
                 }
-            }
+            )
         }
         delete<Models.ID.Delete> { route ->
-            val login = call.principal<JWTPrincipal>()?.get("login")!!
+            val userID: String? = call.principal<JWTPrincipal>()?.get("id")
 
-            userService.readByLogin(login).onLeft { failure ->
-                // If user not found
+            if (userID == null) {
                 call.respond(
-                    status = HttpStatusCode.NotFound, message = Response(
-                        message = failure.message,
+                    status = HttpStatusCode.NotFound,
+                    message = Response(
+                        message = USER_NOT_FOUND,
                         data = null
                     )
                 )
                 return@delete
-            }.onRight { user ->
-                // If parameter id was missing
-                if (route.parent.id == null) {
-                    call.respond(
-                        status = HttpStatusCode.BadRequest,
-                        message = Response(
-                            message = PARAMETER_ID_WAS_MISSING,
-                            data = null
-                        )
-                    )
-                    return@delete
-                }
+            }
 
-                // Read model by id
-                renderModelService.readByID(route.parent.id).onLeft { failure ->
+            if (route.parent.id == null) {
+                call.respond(
+                    status = HttpStatusCode.BadRequest,
+                    message = Response(
+                        message = PARAMETER_ID_WAS_MISSING,
+                        data = null
+                    )
+                )
+                return@delete
+            }
+
+            renderModelService.readByID(route.parent.id).fold(
+                ifLeft = { failure ->
                     when (failure) {
-                        // Model not found
                         is Failure.ReadFailure -> call.respond(
                             status = failure.statusCode,
                             message = Response(
@@ -182,7 +180,6 @@ fun Route.renderModels(
                             )
                         )
 
-                        // Some error
                         else -> call.respond(
                             status = HttpStatusCode.BadRequest,
                             message = Response(
@@ -192,9 +189,9 @@ fun Route.renderModels(
                         )
                     }
                     return@delete
-                }.onRight { model ->
-                    // If user is author of model
-                    if (model.author_login != user.login) {
+                },
+                ifRight = { model ->
+                    if (model.author_id != userID) {
                         call.respond(
                             status = HttpStatusCode.Forbidden,
                             message = Response(
@@ -204,117 +201,82 @@ fun Route.renderModels(
                         )
                         return@delete
                     }
-
-                    // delete model
-                    renderModelService.delete(route.parent.id).onLeft { failure ->
-                        // Some error
-                        call.respond(
-                            status = HttpStatusCode.BadRequest,
-                            message = Response(
-                                message = failure.message,
-                                data = null
+                    renderModelService.delete(route.parent.id).fold(
+                        ifLeft = { failure ->
+                            call.respond(
+                                status = HttpStatusCode.BadRequest,
+                                message = Response(
+                                    message = failure.message,
+                                    data = null
+                                )
                             )
-                        )
-                    }.onRight {
-
-                        // Success
-                        call.respond(
-                            status = HttpStatusCode.OK,
-                            message = Response(
-                                message = SUCCESS_DELETE_MODEL,
-                                data = null
+                        },
+                        ifRight = {
+                            call.respond(
+                                status = HttpStatusCode.OK,
+                                message = Response(
+                                    message = SUCCESS_DELETE_MODEL,
+                                    data = null
+                                )
                             )
-                        )
-                        return@delete
-                    }
+                            return@delete
+                        }
+                    )
                 }
-            }
+            )
         }
         post<Models.ID.Update> { route ->
-            val login = call.principal<JWTPrincipal>()?.get("login")!!
+            val userID: String? = call.principal<JWTPrincipal>()?.get("id")
 
-            userService.readByLogin(login).onLeft { failure ->
-                // If user not found
+            if (userID == null) {
                 call.respond(
-                    status = HttpStatusCode.NotFound, message = Response(
-                        message = failure.message,
+                    status = HttpStatusCode.NotFound,
+                    message = Response(
+                        message = USER_NOT_FOUND,
                         data = null
                     )
                 )
                 return@post
-            }.onRight { user ->
-                val request = call.receive(UpdateModelRequest::class)
-                // If parameter id was missing
-                if (route.parent.id == null) {
+            }
+
+            if (route.parent.id == null) {
+                call.respond(
+                    status = HttpStatusCode.BadRequest,
+                    message = Response(
+                        message = PARAMETER_ID_WAS_MISSING,
+                        data = null
+                    )
+                )
+                return@post
+            }
+
+            val request = call.receive(UpdateModelRequest::class)
+
+            renderModelService.update(
+                id = route.parent.id,
+                request = request
+            ).fold(
+                ifLeft = { failure ->
                     call.respond(
                         status = HttpStatusCode.BadRequest,
                         message = Response(
-                            message = PARAMETER_ID_WAS_MISSING,
+                            message = failure.message,
+                            data = null
+                        )
+                    )
+                    return@post
+                },
+                ifRight = {
+                    call.respond(
+                        status = HttpStatusCode.OK,
+                        message = Response(
+                            message = SUCCESS_UPDATE_MODEL,
                             data = null
                         )
                     )
                     return@post
                 }
-                // Find the model
-                renderModelService.readByID(route.parent.id).onLeft { failure ->
-                    when (failure) {
-                        // Model not found
-                        is Failure.ReadFailure -> call.respond(
-                            status = failure.statusCode,
-                            message = Response(
-                                message = failure.message,
-                                data = null
-                            )
-                        )
-                        // Some error
-                        else -> call.respond(
-                            status = HttpStatusCode.BadRequest,
-                            message = Response(
-                                message = failure.message,
-                                data = null
-                            )
-                        )
-                    }
-                    return@post
-                }.onRight { model ->
-                    // If user is not an author of model
-                    if (model.author_login != user.login) {
-                        call.respond(
-                            status = HttpStatusCode.Forbidden,
-                            message = Response(
-                                message = CANNOT_DELETE_MODEL,
-                                data = null
-                            )
-                        )
-                        return@post
-                    }
-                    // Updating model
-                    renderModelService.update(
-                        id = route.parent.id,
-                        request = request
-                    ).onLeft { failure ->
-                        // Some error
-                        call.respond(
-                            status = HttpStatusCode.BadRequest,
-                            message = Response(
-                                message = failure.message,
-                                data = null
-                            )
-                        )
-                        return@post
-                    }.onRight {
-                        // Model was updated
-                        call.respond(
-                            status = HttpStatusCode.OK,
-                            message = Response(
-                                message = SUCCESS_UPDATE_MODEL,
-                                data = null
-                            )
-                        )
-                        return@post
-                    }
-                }
-            }
+            )
         }
     }
 }

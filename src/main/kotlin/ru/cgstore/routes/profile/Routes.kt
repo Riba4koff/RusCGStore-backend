@@ -15,7 +15,6 @@ import ru.cgstore.models.Response
 import ru.cgstore.requests.profile.UpdateProfileRequest
 import ru.cgstore.routes.profile.MESSAGES.SUCCESS_RECEIVE_MODELS
 import ru.cgstore.routes.profile.MESSAGES.SUCCESS_RECEIVE_PROFILE_DATA
-import ru.cgstore.routes.profile.MESSAGES.PARAMETER_LOGIN_WAS_NOT_FOUND_IN_TOKEN
 import ru.cgstore.routes.profile.MESSAGES.SUCCESS_UPDATE_PROFILE_DATA
 import ru.cgstore.routes.profile.MESSAGES.USER_NOT_FOUND
 import ru.cgstore.storage.render_model.RenderModelService
@@ -26,7 +25,6 @@ private object MESSAGES {
     const val SUCCESS_RECEIVE_MODELS = "Модели успешно загружены"
     const val SUCCESS_RECEIVE_PROFILE_DATA = "Данные профиля успешно загружены"
     const val SUCCESS_UPDATE_PROFILE_DATA = "Данные профиля успешно обновлены"
-    const val PARAMETER_LOGIN_WAS_NOT_FOUND_IN_TOKEN = "Параметр логин не найден в JWT токене"
 }
 
 fun Route.provideProfile(
@@ -42,56 +40,62 @@ fun Route.provideProfile(
                 return@get
             }
 
-            usersService.read(userID).onLeft { failure ->
-                when (failure) {
-                    is Failure.ReadFailure -> {
-                        call.respond(failure.statusCode, failure.message)
-                        return@get
-                    }
+            usersService.read(userID).fold(
+                ifLeft = { failure ->
+                    when (failure) {
+                        is Failure.ReadFailure -> {
+                            call.respond(failure.statusCode, failure.message)
+                            return@get
+                        }
 
-                    else -> {
-                        call.respond(HttpStatusCode.BadRequest, failure.message)
-                        return@get
+                        else -> {
+                            call.respond(HttpStatusCode.BadRequest, failure.message)
+                            return@get
+                        }
                     }
-                }
-            }.onRight { profileDataResponse ->
-                call.respond(
-                    HttpStatusCode.OK, Response(
-                        message = SUCCESS_RECEIVE_PROFILE_DATA,
-                        data = profileDataResponse
+                },
+                ifRight = { profileDataResponse ->
+                    call.respond(
+                        HttpStatusCode.OK, Response(
+                            message = SUCCESS_RECEIVE_PROFILE_DATA,
+                            data = profileDataResponse
+                        )
                     )
-                )
-                return@get
-            }
+                    return@get
+                }
+            )
         }
         get<Profile.Models> { route ->
-            val login = call.principal<JWTPrincipal>()?.get("login")
+            val userID = call.principal<JWTPrincipal>()?.get("id")
 
-            if (login == null) {
-                call.respond(HttpStatusCode.NotFound, PARAMETER_LOGIN_WAS_NOT_FOUND_IN_TOKEN)
+            if (userID == null) {
+                call.respond(HttpStatusCode.NotFound, USER_NOT_FOUND)
                 return@get
             }
 
-            renderModelService.readByUserLogin(
-                login = login,
+            renderModelService.readByUserID(
+                author_id = userID,
                 page = route.page,
                 size = route.size
-            ).onLeft { failure ->
-                call.respond(HttpStatusCode.BadRequest, failure.message)
-                return@get
-            }.onRight { models ->
-                call.respond(
-                    HttpStatusCode.OK,
-                    PageResponse(
-                        message = SUCCESS_RECEIVE_MODELS,
-                        data = models,
-                        size = route.size,
-                        page = route.page,
-                        number_of_found = models.size
+            ).fold(
+                ifLeft = { failure ->
+                    call.respond(HttpStatusCode.BadRequest, failure.message)
+                    return@get
+                },
+                ifRight = { models ->
+                    call.respond(
+                        HttpStatusCode.OK,
+                        PageResponse(
+                            message = SUCCESS_RECEIVE_MODELS,
+                            data = models,
+                            size = route.size,
+                            page = route.page,
+                            number_of_found = models.size
+                        )
                     )
-                )
-                return@get
-            }
+                    return@get
+                }
+            )
         }
         post<Profile.Update> {
             val userID = call.principal<JWTPrincipal>()?.get("id")
@@ -103,13 +107,16 @@ fun Route.provideProfile(
 
             val request = call.receive(UpdateProfileRequest::class)
 
-            usersService.update(userID, request).onLeft  { failure ->
-                call.respond(HttpStatusCode.BadRequest, failure.message)
-                return@post
-            }.onRight {
-                call.respond(HttpStatusCode.OK, SUCCESS_UPDATE_PROFILE_DATA)
-                return@post
-            }
+            usersService.update(userID, request).fold(
+                ifLeft = { failure ->
+                    call.respond(HttpStatusCode.BadRequest, failure.message)
+                    return@post
+                },
+                ifRight = {
+                    call.respond(HttpStatusCode.OK, SUCCESS_UPDATE_PROFILE_DATA)
+                    return@post
+                }
+            )
         }
     }
 }
