@@ -20,6 +20,7 @@ import ru.cgstore.routes.render_models.MESSAGES.CANNOT_DELETE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.MODEL_NOT_FOUND
 import ru.cgstore.routes.render_models.MESSAGES.PARAMETER_ID_WAS_MISSING
 import ru.cgstore.routes.render_models.MESSAGES.PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN
+import ru.cgstore.routes.render_models.MESSAGES.PARAMETER_LOGIN_WAS_MISSING
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_CREATE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_DELETE_MODEL
 import ru.cgstore.routes.render_models.MESSAGES.SUCCESS_RECEIVE_MODEL
@@ -33,6 +34,7 @@ private object MESSAGES {
     const val SUCCESS_RECEIVE_MODELS = "Модели успешно загружены"
     const val SUCCESS_RECEIVE_MODEL = "Модель успешно загружена"
     const val PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN = "Параметр ID не найден в JWT токене"
+    const val PARAMETER_LOGIN_WAS_MISSING = "Пропущен параметр login"
     const val PARAMETER_ID_WAS_MISSING = "Пропущен параметр ID"
     const val CANNOT_DELETE_MODEL = "Вы не можете удалить модель, которая создана другим пользователем"
     const val SUCCESS_DELETE_MODEL = "Модель удалена"
@@ -76,6 +78,7 @@ fun Route.renderModels(
                 status = HttpStatusCode.BadRequest,
                 message = Response(
                     message = PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN,
+                    message = PARAMETER_LOGIN_WAS_MISSING,
                     data = null
                 )
             )
@@ -115,6 +118,8 @@ fun Route.renderModels(
                 call.respond(HttpStatusCode.NotFound, PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN)
                 return@put
             }
+
+            val login = call.principal<JWTPrincipal>()?.get("login")!!
 
             userService.readByLogin(login).onLeft { failure ->
                 call.respond(
@@ -156,6 +161,27 @@ fun Route.renderModels(
                 call.respond(HttpStatusCode.NotFound, PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN)
                 return@delete
             }
+
+            userService.readByLogin(login).onLeft { failure ->
+                // If user not found
+                call.respond(
+                    status = HttpStatusCode.NotFound, message = Response(
+                        message = failure.message,
+                        data = null
+                    )
+                )
+                return@delete
+            }.onRight { user ->
+                // If parameter id was missing
+                if (route.parent.id == null) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest,
+                        message = Response(
+                            message = PARAMETER_ID_WAS_MISSING,
+                            data = null
+                        )
+                    )
+            val login = call.principal<JWTPrincipal>()?.get("login")!!
 
             userService.readByLogin(login).onLeft { failure ->
                 // If user not found
@@ -246,7 +272,7 @@ fun Route.renderModels(
                 call.respond(HttpStatusCode.NotFound, PARAMETER_LOGIN_WAS_NOT_FOUND_IN_JWT_TOKEN)
                 return@post
             }
-
+            val login = call.principal<JWTPrincipal>()?.get("login")!!
             userService.readByLogin(login).onLeft { failure ->
                 // If user not found
                 call.respond(
