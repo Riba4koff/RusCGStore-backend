@@ -9,6 +9,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.resources.get
 import io.ktor.server.resources.post
 import io.ktor.server.response.*
+import ru.cgstore.models.Failure
 import ru.cgstore.models.PageResponse
 import ru.cgstore.models.Response
 import ru.cgstore.requests.profile.UpdateProfileRequest
@@ -41,8 +42,17 @@ fun Route.provideProfile(
 
             usersService.read(userID).fold(
                 ifLeft = { failure ->
-                    call.respond(HttpStatusCode.BadRequest, failure.message)
-                    return@get
+                    when (failure) {
+                        is Failure.ReadFailure -> {
+                            call.respond(failure.statusCode, failure.message)
+                            return@get
+                        }
+
+                        else -> {
+                            call.respond(HttpStatusCode.BadRequest, failure.message)
+                            return@get
+                        }
+                    }
                 },
                 ifRight = { profileDataResponse ->
                     call.respond(
