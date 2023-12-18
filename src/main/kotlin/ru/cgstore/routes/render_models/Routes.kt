@@ -46,29 +46,26 @@ fun Route.renderModels(
     userService: UsersService,
 ) {
     get<Models.All> { route ->
-        renderModelService.readAll(page = route.page, size = route.size).fold(
-            ifLeft = { failure ->
-                call.respond(
-                    HttpStatusCode.BadRequest, Response(
-                        message = failure.message,
-                        data = null
-                    )
+        renderModelService.readAll(page = route.page, size = route.size).onLeft  { failure ->
+            call.respond(
+                HttpStatusCode.BadRequest, Response(
+                    message = failure.message,
+                    data = null
                 )
-                return@get
-            },
-            ifRight = { models ->
-                call.respond(
-                    HttpStatusCode.OK, PageResponse(
-                        message = SUCCESS_RECEIVE_MODELS,
-                        data = models,
-                        size = route.size,
-                        page = route.page,
-                        number_of_found = models.size
-                    )
+            )
+            return@get
+        }.onRight { models ->
+            call.respond(
+                HttpStatusCode.OK, PageResponse(
+                    message = SUCCESS_RECEIVE_MODELS,
+                    data = models,
+                    size = route.size,
+                    page = route.page,
+                    number_of_found = models.size
                 )
-                return@get
-            }
-        )
+            )
+            return@get
+        }
     }
     get<Models.ID> { route ->
         if (route.id == null) {
@@ -82,30 +79,27 @@ fun Route.renderModels(
             return@get
         }
 
-        renderModelService.readByID(id = route.id).fold(
-            ifLeft = { failure ->
-                val status = if (failure is Failure.ReadFailure) HttpStatusCode.NotFound
-                else HttpStatusCode.BadRequest
-                call.respond(
-                    status = status,
-                    message = Response(
-                        message = MODEL_NOT_FOUND,
-                        data = null
-                    )
+        renderModelService.readByID(id = route.id).onLeft { failure ->
+            val status = if (failure is Failure.ReadFailure) HttpStatusCode.NotFound
+            else HttpStatusCode.BadRequest
+            call.respond(
+                status = status,
+                message = Response(
+                    message = MODEL_NOT_FOUND,
+                    data = null
                 )
-                return@get
-            },
-            ifRight = { model ->
-                call.respond(
-                    status = HttpStatusCode.OK,
-                    message = Response(
-                        message = SUCCESS_RECEIVE_MODEL,
-                        data = model
-                    )
+            )
+            return@get
+        }.onRight { model ->
+            call.respond(
+                status = HttpStatusCode.OK,
+                message = Response(
+                    message = SUCCESS_RECEIVE_MODEL,
+                    data = model
                 )
-                return@get
-            }
-        )
+            )
+            return@get
+        }
     }
     authenticate {
         put<Models.Create> {
