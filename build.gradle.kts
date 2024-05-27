@@ -95,7 +95,7 @@ dependencies {
 
     //apache.common.codec
     implementation("commons-codec:commons-codec:1.13")
-
+    implementation("io.ktor:ktor-server-cors-jvm:2.3.6")
     //kotlinx.datetime
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.0")
 
