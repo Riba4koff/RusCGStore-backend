@@ -6,18 +6,6 @@
 # @url: https://github.com/The404Hacking/Infoga   
 # @author: Momo Outaadi (The404Hacking)
 #
-# Infoga is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation version 3 of the License.
-#
-# Infoga is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Infoga; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import json 
 import os 
@@ -27,6 +15,7 @@ import socket
 import re 
 import requests
 import urllib.parse as urlparse
+
 from core.lib import http
 from core.lib import parser 
 from core.lib import colors 
@@ -86,15 +75,15 @@ class Infoga(object):
                 data = {'lang':'en'}
                 data['email'] = allemail[x]
                 req = requests.post("http://mailtester.com/testmail.php", data=data, verify=False)
-                regex = re.compile("[0-9]+(?:\.[0-9]+){3}")
-                ip = regex.findall(req.content)
+                regex = re.compile(r"[0-9]+(?:\.[0-9]+){3}")  # raw string
+                ip = regex.findall(req.content.decode('utf-8', errors='ignore'))
                 new = []
                 for e in ip:
                     if e not in new:
                         new.append(e)
                 for s in range(len(new)):
                     req = requests.get("https://api.shodan.io/shodan/host/"+new[s]+"?key=UNmOjxeFS2mPA3kmzm1sZwC0XjaTTksy", verify=False)
-                    jso = json.loads(req.content.decode('utf-8'))
+                    jso = json.loads(req.content.decode('utf-8', errors='ignore'))
                     try:
                         self.sock = socket.gethostbyaddr(new[s])[0]
                     except socket.herror:
@@ -154,16 +143,16 @@ class Infoga(object):
             data = {'lang':'en'}
             data['email'] = email 
             req = requests.post("http://mailtester.com/testmail.php", data=data, verify=False)
-            regex = re.compile("[0-9]+(?:\.[0-9]+){3}")
-            ip = regex.findall(req.content)
+            regex = re.compile(r"[0-9]+(?:\.[0-9]+){3}")  # raw string 
+            ip = regex.findall(req.content.decode('utf-8', errors='ignore'))
             new = []
             for e in ip:
                 if e not in new:
                     new.append(e)
             self.printf.plus("Email: %s" % email)
             for s in range(len(new)):
-                req = requests.get("https://api.shodan.io/shodan/host/" + new[s] + "?key=UNmOjxeFS2mPA3kmzm1sZwC0XjaTTksy", verify=False)
-                jso = json.loads(req.content.decode('utf-8'))
+                req = requests.get("https://api.shodan.io/shodan/host/"  + new[s] + "?key=UNmOjxeFS2mPA3kmzm1sZwC0XjaTTksy", verify=False)
+                jso = json.loads(req.content.decode('utf-8', errors='ignore'))
                 try:
                     self.sock = socket.gethostbyaddr(new[s])[0]
                 except socket.herror:
@@ -177,7 +166,7 @@ class Infoga(object):
                     self.printf.info("City: %s (%s)" % (jso["city"], jso["region_code"]))
                     self.printf.info("ASN: %s" % jso["asn"])
                     self.printf.info("ISP: %s" % jso["isp"])
-                    self.printf.info("Geolocation: %s" % ("https://www.google.com/maps/@%s,%s,9z" % (jso["latitude"], jso["longitude"])))
+                    self.printf.info("Geolocation: %s" % ("https://www.google.com/maps/@%s,%s,9z"  % (jso["latitude"], jso["longitude"])))
                     self.printf.info("Hostname: %s" % jso["hostnames"][0])
                     self.printf.info("Organization: %s" % jso["org"])
                     self.printf.info("Ports: %s" % jso["ports"])
